@@ -119,6 +119,7 @@ lark-cli vc +meeting-events --as <source_identity> --meeting-id <meeting_id> --p
 | `vc +meeting-list-active` | 发现当前可见的进行中会议 | [lark-vc-meeting-list-active](references/lark-vc-meeting-list-active.md) |
 | `vc +meeting-events` | 读取会中事件和共享内容 | [lark-vc-meeting-events](references/lark-vc-meeting-events.md) |
 | `vc +meeting-message-send` | 发送会中文本消息或表情 | [lark-vc-meeting-message-send](references/lark-vc-meeting-message-send.md) |
+| `vc +meeting-screenshot` | 获取进行中且录制中的最终混流截图 | [lark-vc-agent-meeting-screenshot](references/lark-vc-agent-meeting-screenshot.md) |
 | `vc +meeting-join` | 让应用机器人加入会议 | [lark-vc-agent-meeting-join](references/lark-vc-agent-meeting-join.md) |
 | `vc +meeting-leave` | 让应用机器人离开会议 | [lark-vc-agent-meeting-leave](references/lark-vc-agent-meeting-leave.md) |
 | `minutes +search` | 搜索妙记 | [lark-minutes-search](references/lark-minutes-search.md) |
