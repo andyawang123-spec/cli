@@ -107,7 +107,22 @@ func TestVCAgentActionDocsMatchShortcuts(t *testing.T) {
 	}
 
 	inviteRef := readSkillDoc(t, references["+meeting-invite"])
-	for _, want := range []string{"--scope selected", "--invitee-id-type open_id", "--invitee-ids", "\"invite_type\": 2", "user_id_type=open_id"} {
+	for _, want := range []string{
+		"--scope selected",
+		"--invitee-id-type open_id",
+		"--invitee-ids",
+		"\"invite_type\": 2",
+		"user_id_type=open_id",
+		"invited_count",
+		"failed_count",
+		"has_more",
+		"单批最多 200",
+		"实时重新计算",
+		"已经在会中、正在响铃或正在呼叫",
+		"无 page token",
+		"不会自动循环",
+		"Host 或 Co-host",
+	} {
 		if !strings.Contains(inviteRef, want) {
 			t.Fatalf("meeting invite reference missing %q", want)
 		}
@@ -115,6 +130,12 @@ func TestVCAgentActionDocsMatchShortcuts(t *testing.T) {
 	for _, legacy := range []string{"--type", "--open-ids"} {
 		if strings.Contains(inviteRef, legacy) {
 			t.Fatalf("meeting invite reference must not promote legacy %s", legacy)
+		}
+	}
+
+	for _, want := range []string{"invited_count", "failed_count", "has_more", "不会自动续邀", "Host 或 Co-host"} {
+		if !strings.Contains(skill, want) {
+			t.Fatalf("skills/lark-vc-agent/SKILL.md meeting invite guidance missing %q", want)
 		}
 	}
 }

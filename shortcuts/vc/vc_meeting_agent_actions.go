@@ -116,7 +116,7 @@ var VCMeetingInvite = common.Shortcut{
 			data = map[string]interface{}{}
 		}
 		runtime.OutFormat(data, nil, func(w io.Writer) {
-			fmt.Fprintln(w, "Invite request sent.")
+			printMeetingInviteSummary(w, data)
 		})
 		return nil
 	},
@@ -264,6 +264,19 @@ func buildMeetingEndBody(runtime *common.RuntimeContext) (map[string]interface{}
 	return map[string]interface{}{
 		"meeting_id": strings.TrimSpace(runtime.Str("meeting-id")),
 	}, nil
+}
+
+func printMeetingInviteSummary(w io.Writer, data map[string]interface{}) {
+	fmt.Fprintln(w, "Invite request sent.")
+	if count, ok := common.GetFloatOK(data, "invited_count"); ok {
+		fmt.Fprintf(w, "  Invited this batch: %d\n", int(count))
+	}
+	if count, ok := common.GetFloatOK(data, "failed_count"); ok {
+		fmt.Fprintf(w, "  Failed this batch: %d\n", int(count))
+	}
+	if common.GetBool(data, "has_more") {
+		fmt.Fprintln(w, "More eligible candidates remain. Run again with --scope all.")
+	}
 }
 
 func printMeetingSummary(w io.Writer, data map[string]interface{}) {

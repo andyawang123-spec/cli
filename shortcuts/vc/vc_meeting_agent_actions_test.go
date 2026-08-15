@@ -104,7 +104,15 @@ func TestMeetingInvite_Execute_AllScopeWireMapping(t *testing.T) {
 	stub := &httpmock.Stub{
 		Method: "POST",
 		URL:    meetingBotInvitePath,
-		Body:   map[string]interface{}{"code": 0, "msg": "ok", "data": map[string]interface{}{}},
+		Body: map[string]interface{}{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]interface{}{
+				"invited_count": 198,
+				"failed_count":  2,
+				"has_more":      true,
+			},
+		},
 	}
 	reg.Register(stub)
 
@@ -130,6 +138,90 @@ func TestMeetingInvite_Execute_AllScopeWireMapping(t *testing.T) {
 	}
 	if _, ok := req["scope"]; ok {
 		t.Fatalf("body must not include scope, got %#v", req["scope"])
+	}
+
+	var envelope struct {
+		Data struct {
+			InvitedCount int  `json:"invited_count"`
+			FailedCount  int  `json:"failed_count"`
+			HasMore      bool `json:"has_more"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &envelope); err != nil {
+		t.Fatalf("unmarshal output: %v", err)
+	}
+	if envelope.Data.InvitedCount != 198 || envelope.Data.FailedCount != 2 || !envelope.Data.HasMore {
+		t.Fatalf("output data = %+v, want invited_count=198 failed_count=2 has_more=true", envelope.Data)
+	}
+}
+
+func TestMeetingInvite_Execute_PrettyShowsBatchCountsAndContinuationHint(t *testing.T) {
+	tests := []struct {
+		name         string
+		hasMore      bool
+		wantHint     bool
+		unwantedText string
+	}{
+		{
+			name:     "more eligible candidates",
+			hasMore:  true,
+			wantHint: true,
+		},
+		{
+			name:         "batch is complete",
+			hasMore:      false,
+			unwantedText: "Run again with --scope all",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			f, stdout, _, reg := cmdutil.TestFactory(t, defaultConfig())
+			stub := &httpmock.Stub{
+				Method: "POST",
+				URL:    meetingBotInvitePath,
+				Body: map[string]interface{}{
+					"code": 0,
+					"msg":  "ok",
+					"data": map[string]interface{}{
+						"invited_count": 197,
+						"failed_count":  3,
+						"has_more":      tc.hasMore,
+					},
+				},
+			}
+			reg.Register(stub)
+
+			err := mountAndRun(t, VCMeetingInvite, []string{
+				"+meeting-invite", "--as", "bot",
+				"--meeting-id", "7628568141510692381",
+				"--scope", "all",
+				"--format", "pretty",
+			}, f, stdout)
+			if err != nil {
+				t.Fatalf("mountAndRun() error = %v", err)
+			}
+
+			out := stdout.String()
+			for _, want := range []string{"Invited this batch: 197", "Failed this batch: 3"} {
+				if !strings.Contains(out, want) {
+					t.Fatalf("pretty output missing %q:\n%s", want, out)
+				}
+			}
+			hint := "More eligible candidates remain. Run again with --scope all."
+			if tc.wantHint && !strings.Contains(out, hint) {
+				t.Fatalf("pretty output missing continuation hint %q:\n%s", hint, out)
+			}
+			if tc.unwantedText != "" && strings.Contains(out, tc.unwantedText) {
+				t.Fatalf("pretty output must not imply more candidates when has_more=false:\n%s", out)
+			}
+			if strings.Contains(out, "invited all") || strings.Contains(out, "全部邀请") {
+				t.Fatalf("pretty output must not claim all candidates were invited:\n%s", out)
+			}
+			if len(stub.CapturedBodies) != 1 {
+				t.Fatalf("invite API calls = %d, want exactly one; CLI must not auto-continue", len(stub.CapturedBodies))
+			}
+		})
 	}
 }
 

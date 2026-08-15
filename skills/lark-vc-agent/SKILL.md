@@ -96,9 +96,11 @@ metadata:
 ### 2A. 启动 / 邀请 / 结束会议（写操作）
 
 1. 用户明确要求启动会议时，用 `+meeting-start --as bot --meeting-number <9位>`；请求体固定为 `join_type=1`、`join_identify.meeting_no=<会议号>`、`action=2`。
-2. 用户要求邀请成员时，用 `+meeting-invite --as bot --meeting-id <meeting_id> --scope all|selected`。`selected` 必须同时传 `--invitee-id-type open_id|union_id|user_id` 和 `--invitee-ids <ids>`；wire 只发送 `invite_type=2`、`invitees=[{id,user_type:1}]` 和 query `user_id_type=<type>`，不要发送 `scope=selected`。`--scope all` 只发送 `invite_type=1`，不带 `invitees`。
-3. 用户明确要求结束整场会议时，用 `+meeting-end --as bot --meeting-id <meeting_id>`；这是影响所有参会人的写操作，不要把“机器人离开”误路由为结束会议。
-4. 这三个写操作只走公开 OpenAPI；不要 fallback BAM、OGW 或 internal RPC。
+2. 用户要求邀请成员时，用 `+meeting-invite --as bot --meeting-id <meeting_id> --scope all|selected`。`selected` 必须同时传 `--invitee-id-type open_id|union_id|user_id` 和 `--invitee-ids <ids>`，去重后最多 200 人；去重后 1 人走单点邀请，2～200 人要求当前应用机器人是 Host 或 Co-host。`all` 同样要求当前应用机器人是 Host 或 Co-host，每次实时重新计算并过滤已经在会中、正在响铃或正在呼叫的用户，单批最多邀请 200 人。
+3. Invite JSON 原样保留服务端实际返回的聚合字段；`failed_count` 表示本批失败数。服务端返回 `invited_count` / `has_more` 时，pretty 才展示本批成功数和续邀提示。`has_more=true` 只表示仍有符合条件的候选，可由用户再次调用 `--scope all`；它不是 page token，CLI 不会自动续邀，也不能据此声称已经邀请全部候选。
+4. Invite wire 合同保持不变：`selected` 只发送 `invite_type=2`、`invitees=[{id,user_type:1}]` 和 query `user_id_type=<type>`，不要发送 `scope=selected`；`all` 只发送 `invite_type=1`，不带 `invitees`。响应不增加外部用户明细。
+5. 用户明确要求结束整场会议时，用 `+meeting-end --as bot --meeting-id <meeting_id>`；这是影响所有参会人的写操作，不要把“机器人离开”误路由为结束会议。
+6. 这三个写操作只走公开 OpenAPI；不要 fallback BAM、OGW 或 internal RPC。
 
 #### 文档上下文事件
 
