@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/larksuite/cli/internal/core"
+	"github.com/larksuite/cli/internal/envvars"
 	"github.com/larksuite/cli/internal/transport"
 )
 
@@ -159,6 +161,10 @@ func (t *SecurityHeaderTransport) RoundTrip(req *http.Request) (*http.Response, 
 		for _, v := range vs {
 			req.Header.Set(k, v)
 		}
+	}
+	req.Header.Del(HeaderTTEnv)
+	if lane := envvars.TTEnv(); lane != "" && core.IsOpenAPIEndpointURL(req.URL) {
+		req.Header.Set(HeaderTTEnv, lane)
 	}
 	// Shortcut headers are propagated via context (see section 5.6 of the design doc).
 	if name, ok := ShortcutNameFromContext(req.Context()); ok {

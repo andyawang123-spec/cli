@@ -27,6 +27,7 @@ const (
 	HeaderExecutionId = "X-Cli-Execution-Id"
 	HeaderAgentTrace  = "X-Agent-Trace"
 	HeaderAgentName   = "X-Agent-Name"
+	HeaderTTEnv       = "X-TT-ENV"
 
 	SourceValue = "lark-cli"
 

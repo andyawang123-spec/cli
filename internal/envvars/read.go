@@ -12,6 +12,7 @@ import (
 const (
 	agentNameMaxLen  = 128
 	agentTraceMaxLen = 1024
+	ttEnvMaxLen      = 128
 )
 
 func AgentName() string {
@@ -20,6 +21,11 @@ func AgentName() string {
 
 func AgentTrace() string {
 	return sanitizeSingleLine(os.Getenv(CliAgentTrace), agentTraceMaxLen)
+}
+
+// TTEnv returns the trusted BOE lane header value for OpenAPI requests.
+func TTEnv() string {
+	return sanitizeSingleLine(os.Getenv(CliTTEnv), ttEnvMaxLen)
 }
 
 func sanitizeSingleLine(raw string, maxLen int) string {

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	exttransport "github.com/larksuite/cli/extension/transport"
+	"github.com/larksuite/cli/internal/envvars"
 	"github.com/larksuite/cli/internal/riskcontrol"
 	internaltransport "github.com/larksuite/cli/internal/transport"
 )
@@ -22,6 +23,42 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
+}
+
+func TestSecurityHeaderTransport_AddsTTEnvOnlyToOpenAPI(t *testing.T) {
+	t.Setenv(envvars.CliOpenBaseURL, "https://open.feishu-boe.cn")
+	t.Setenv(envvars.CliTTEnv, "boe_vc_artboard")
+
+	for _, tc := range []struct {
+		name string
+		url  string
+		want string
+	}{
+		{name: "open api", url: "https://open.feishu-boe.cn/open-apis/vc/v1/bots/screenshot", want: "boe_vc_artboard"},
+		{name: "accounts", url: "https://accounts.feishu-boe.cn/oauth/v3/token", want: ""},
+		{name: "open console", url: "https://open.feishu-boe.cn/page/launcher", want: ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var got http.Header
+			transport := &SecurityHeaderTransport{Base: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+				got = req.Header.Clone()
+				return &http.Response{StatusCode: http.StatusNoContent, Body: http.NoBody}, nil
+			})}
+			req, err := http.NewRequest(http.MethodGet, tc.url, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set(HeaderTTEnv, "caller-value")
+			resp, err := transport.RoundTrip(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_ = resp.Body.Close()
+			if value := got.Get(HeaderTTEnv); value != tc.want {
+				t.Fatalf("%s = %q, want %q", HeaderTTEnv, value, tc.want)
+			}
+		})
+	}
 }
 
 // ---------------------------------------------------------------------------

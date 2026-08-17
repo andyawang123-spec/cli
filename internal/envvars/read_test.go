@@ -131,3 +131,14 @@ func TestAgentTrace_AcceptsMaxLengthValue(t *testing.T) {
 		t.Fatalf("AgentTrace() = %q, want %d-byte value accepted", got, agentTraceMaxLen)
 	}
 }
+
+func TestTTEnv_SanitizesHeaderValue(t *testing.T) {
+	t.Setenv(CliTTEnv, "  boe_vc_artboard  ")
+	if got := TTEnv(); got != "boe_vc_artboard" {
+		t.Fatalf("TTEnv() = %q, want normalized lane", got)
+	}
+	t.Setenv(CliTTEnv, "boe\r\nX-Evil: attack")
+	if got := TTEnv(); got != "" {
+		t.Fatalf("TTEnv() = %q, want empty for invalid header value", got)
+	}
+}

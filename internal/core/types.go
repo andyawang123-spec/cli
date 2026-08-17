@@ -6,6 +6,7 @@ package core
 import (
 	"context"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/larksuite/cli/internal/envvars"
@@ -127,24 +128,41 @@ type Endpoints struct {
 }
 
 // ResolveEndpoints resolves endpoint URLs for the brand, normalizing its
-// input so stored values with unusual casing still resolve correctly.
+// input so stored values with unusual casing still resolve correctly. The
+// Open and Accounts endpoints may be overridden for BOE by their dedicated
+// environment variables; invalid values retain the brand default.
 func ResolveEndpoints(brand LarkBrand) Endpoints {
+	var endpoints Endpoints
 	switch ParseBrand(string(brand)) {
 	case BrandLark:
-		return Endpoints{
+		endpoints = Endpoints{
 			Open:     "https://open.larksuite.com",
 			Accounts: "https://accounts.larksuite.com",
 			MCP:      "https://mcp.larksuite.com",
 			AppLink:  "https://applink.larksuite.com",
 		}
 	default:
-		return Endpoints{
+		endpoints = Endpoints{
 			Open:     "https://open.feishu.cn",
 			Accounts: "https://accounts.feishu.cn",
 			MCP:      "https://mcp.feishu.cn",
 			AppLink:  "https://applink.feishu.cn",
 		}
 	}
+	endpoints.Open = endpointOverride(os.Getenv(envvars.CliOpenBaseURL), endpoints.Open)
+	endpoints.Accounts = endpointOverride(os.Getenv(envvars.CliAccountsBaseURL), endpoints.Accounts)
+	return endpoints
+}
+
+func endpointOverride(raw, fallback string) string {
+	candidate, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || candidate.Scheme != "https" || candidate.Host == "" ||
+		candidate.User != nil || candidate.RawQuery != "" || candidate.Fragment != "" ||
+		(candidate.Path != "" && candidate.Path != "/") ||
+		(candidate.Port() != "" && candidate.Port() != "443") {
+		return fallback
+	}
+	return strings.TrimRight(candidate.String(), "/")
 }
 
 // ResolveOpenBaseURL returns the Open API base URL for the given brand.
@@ -186,4 +204,29 @@ func IsPlatformEndpointURL(candidate *url.URL) bool {
 		return false
 	}
 	return IsPlatformEndpointHost(candidate.Hostname())
+}
+
+// IsOpenAPIEndpointURL reports whether candidate is a configured OpenAPI
+// endpoint. It excludes Accounts, MCP, and AppLink requests.
+func IsOpenAPIEndpointURL(candidate *url.URL) bool {
+	if candidate == nil || !strings.EqualFold(candidate.Scheme, "https") ||
+		(candidate.Port() != "" && candidate.Port() != "443") ||
+		!strings.HasPrefix(candidate.EscapedPath(), "/open-apis/") {
+		return false
+	}
+	for _, brand := range []LarkBrand{BrandFeishu, BrandLark} {
+		endpoint, err := url.Parse(ResolveEndpoints(brand).Open)
+		if err == nil && strings.EqualFold(candidate.Hostname(), endpoint.Hostname()) &&
+			httpsPort(candidate) == httpsPort(endpoint) {
+			return true
+		}
+	}
+	return false
+}
+
+func httpsPort(endpoint *url.URL) string {
+	if endpoint == nil || endpoint.Port() == "" {
+		return "443"
+	}
+	return endpoint.Port()
 }

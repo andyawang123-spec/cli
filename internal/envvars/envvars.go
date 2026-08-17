@@ -12,6 +12,9 @@ const (
 	CliDefaultAs         = "LARKSUITE_CLI_DEFAULT_AS"
 	CliProfile           = "LARKSUITE_CLI_PROFILE"
 	CliStrictMode        = "LARKSUITE_CLI_STRICT_MODE"
+	CliOpenBaseURL       = "LARKSUITE_CLI_OPEN_BASE_URL"
+	CliAccountsBaseURL   = "LARKSUITE_CLI_ACCOUNTS_BASE_URL"
+	CliTTEnv             = "LARK_X_TT_ENV"
 
 	// Sidecar proxy (auth proxy mode)
 	CliAuthProxy = "LARKSUITE_CLI_AUTH_PROXY" // sidecar HTTP address, e.g. "http://127.0.0.1:16384"

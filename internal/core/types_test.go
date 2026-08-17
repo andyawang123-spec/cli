@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"reflect"
 	"testing"
+
+	"github.com/larksuite/cli/internal/envvars"
 )
 
 func TestCredentialSourceContext(t *testing.T) {
@@ -63,6 +65,32 @@ func TestResolveEndpoints_EmptyDefaultsToFeishu(t *testing.T) {
 	// pin the default-brand host so a stray non-production domain revert is caught.
 	if ep.Accounts != "https://accounts.feishu.cn" {
 		t.Errorf("Accounts = %q, want accounts.feishu.cn for empty brand", ep.Accounts)
+	}
+}
+
+func TestResolveEndpoints_UsesValidBOEOverrides(t *testing.T) {
+	t.Setenv(envvars.CliOpenBaseURL, "https://open.feishu-boe.cn/")
+	t.Setenv(envvars.CliAccountsBaseURL, "https://accounts.feishu-boe.cn")
+
+	ep := ResolveEndpoints(BrandFeishu)
+	if ep.Open != "https://open.feishu-boe.cn" {
+		t.Fatalf("Open = %q, want BOE override", ep.Open)
+	}
+	if ep.Accounts != "https://accounts.feishu-boe.cn" {
+		t.Fatalf("Accounts = %q, want BOE override", ep.Accounts)
+	}
+	if ep.MCP != "https://mcp.feishu.cn" || ep.AppLink != "https://applink.feishu.cn" {
+		t.Fatalf("non-Open endpoints changed: %+v", ep)
+	}
+}
+
+func TestResolveEndpoints_IgnoresInvalidOverrides(t *testing.T) {
+	t.Setenv(envvars.CliOpenBaseURL, "http://open.feishu-boe.cn")
+	t.Setenv(envvars.CliAccountsBaseURL, "https://accounts.feishu-boe.cn/path")
+
+	ep := ResolveEndpoints(BrandFeishu)
+	if ep.Open != "https://open.feishu.cn" || ep.Accounts != "https://accounts.feishu.cn" {
+		t.Fatalf("invalid overrides changed endpoints: %+v", ep)
 	}
 }
 
@@ -187,6 +215,25 @@ func TestIsPlatformEndpointURL_RequiresSecureStandardOrigin(t *testing.T) {
 		}
 		if !IsPlatformEndpointURL(candidate) {
 			t.Errorf("IsPlatformEndpointURL(%q) = false, want true", rawURL)
+		}
+	}
+}
+
+func TestIsOpenAPIEndpointURL(t *testing.T) {
+	t.Setenv(envvars.CliOpenBaseURL, "https://open.feishu-boe.cn")
+	for rawURL, want := range map[string]bool{
+		"https://open.feishu-boe.cn/open-apis/vc/v1/bots/screenshot":     true,
+		"https://open.feishu-boe.cn:443/open-apis/vc/v1/bots/screenshot": true,
+		"https://accounts.feishu-boe.cn/open-apis/oauth/v3/token":        false,
+		"https://open.feishu-boe.cn/page/launcher":                       false,
+		"http://open.feishu-boe.cn/open-apis/vc/v1/bots/screenshot":      false,
+	} {
+		candidate, err := url.Parse(rawURL)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := IsOpenAPIEndpointURL(candidate); got != want {
+			t.Errorf("IsOpenAPIEndpointURL(%q) = %t, want %t", rawURL, got, want)
 		}
 	}
 }
