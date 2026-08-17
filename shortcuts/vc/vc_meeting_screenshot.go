@@ -135,7 +135,7 @@ func meetingScreenshotOutputPath(runtime *common.RuntimeContext) string {
 		return outputPath
 	}
 	meetingID := strings.TrimSpace(runtime.Str("meeting-id"))
-	stamp := meetingScreenshotNow().UTC().Format("20060102T150405Z")
+	stamp := meetingScreenshotNow().UTC().Format("20060102T150405.000Z")
 	return filepath.Join(".lark-vc", "screenshots", fmt.Sprintf("%s-%s.jpg", meetingID, stamp))
 }
 

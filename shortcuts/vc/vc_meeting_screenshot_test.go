@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/larksuite/cli/errs"
 	"github.com/larksuite/cli/internal/cmdutil"
@@ -89,6 +91,33 @@ func TestVCMeetingScreenshot_SavesJPEG(t *testing.T) {
 	digest := sha256.Sum256(image)
 	if !strings.Contains(stdout.String(), fmt.Sprintf("%x", digest)) {
 		t.Fatalf("output is missing SHA-256: %s", stdout.String())
+	}
+}
+
+func TestVCMeetingScreenshot_DefaultOutputIncludesMilliseconds(t *testing.T) {
+	chdirForTest(t)
+	originalNow := meetingScreenshotNow
+	meetingScreenshotNow = func() time.Time { return time.Date(2026, 8, 18, 10, 11, 12, 123000000, time.UTC) }
+	t.Cleanup(func() { meetingScreenshotNow = originalNow })
+
+	image := []byte{0xff, 0xd8, 0x00, 0xff, 0xd9}
+	f, stdout, _, reg := cmdutil.TestFactory(t, defaultConfig())
+	reg.Register(&httpmock.Stub{
+		Method:      http.MethodPost,
+		URL:         vcMeetingScreenshotAPIPath,
+		RawBody:     image,
+		ContentType: "image/jpeg",
+	})
+
+	err := mountAndRun(t, VCMeetingScreenshot, []string{
+		"+meeting-screenshot", "--as", "user", "--meeting-id", "9876543210123",
+	}, f, stdout)
+	if err != nil {
+		t.Fatalf("run screenshot command: %v", err)
+	}
+	want := filepath.Join(".lark-vc", "screenshots", "9876543210123-20260818T101112.123Z.jpg")
+	if got, readErr := os.ReadFile(want); readErr != nil || string(got) != string(image) {
+		t.Fatalf("default screenshot = %v, %v; want %v", got, readErr, image)
 	}
 }
 
