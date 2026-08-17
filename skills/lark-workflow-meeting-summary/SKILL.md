@@ -5,17 +5,12 @@ description: "会议纪要整理工作流：汇总指定时间范围内的会议
 metadata:
   requires:
     bins: ["lark-cli"]
+    skills: ["lark-meeting"]
 ---
 
 # 会议纪要汇总工作流
 
-**CRITICAL — 开始前 MUST 先用 Read 工具读取 [`../lark-shared/SKILL.md`](../lark-shared/SKILL.md)，其中包含认证、权限处理**。然后阅读 [`../lark-vc/SKILL.md`](../lark-vc/SKILL.md)，了解会议纪要相关操作。
-
-**CRITICAL — 开始前 MUST 先用 Read 工具读取 [`../lark-vc/references/vc-domain-boundaries.md`](../lark-vc/references/vc-domain-boundaries.md)**，不读将导致命令使用、会议产物决策、领域边界职责判断错误：
-> 1. 了解日历 & VC、会议产物 & 文档的关联关系和职责划分
-> 2. 了解会议产物（妙记和纪要）之间的关联关系，例如：**妙记和纪要产生条件相互独立**
-> 3. 了解不同会议产物的组成部分，以便根据需求决策使用哪种产物的数据
-> 4. 了解会议总结、分析和信息提取的标准流程
+**CRITICAL — 开始前 MUST 先完整读取 [`../lark-shared/SKILL.md`](../lark-shared/SKILL.md) 和 [`../lark-meeting/SKILL.md`](../lark-meeting/SKILL.md)**。认证、身份和权限以 lark-shared 为准；会议与产物关系、产物选择和逐字稿路由以 lark-meeting 为准。
 
 ## 适用场景
 
@@ -83,9 +78,9 @@ lark-cli note +detail --note-id "note_id"
 - 部分会议没有 `note_id` 或报错 `no notes available`，在最终输出中标注"无纪要"。
 - 记录每个纪要的 `note_id`（纪要 ID）、`note_display_type`（展示类型：`unknown` / `normal` / `unified`）、`note_doc_token`（纪要文档 Token）和 `verbatim_doc_token`（逐字稿文档 Token）。
 
-> **逐字稿路由按 `note_display_type` 决定**（详见 [vc-domain-boundaries.md](../lark-vc/references/vc-domain-boundaries.md) 的 Note 域）：
+> **逐字稿路由按 `note_display_type` 决定**（详见 [基于 note_id 查询智能纪要及关联产物](../lark-meeting/scenes/query-note-and-artifacts.md)）：
 > - `normal`：逐字稿是独立文档，链接/正文走 `verbatim_doc_token`。
-> - `unified`：逐字稿**不是独立文档**，没有可分享的逐字稿文档链接；需要逐字稿内容时用 `note +transcript --note-id <note_id>`（[lark-note](../lark-note/SKILL.md)）拉取到本地，报告中标注"unified 纪要"即可。
+> - `unified`：逐字稿**不是独立文档**，没有可分享的逐字稿文档链接；需要逐字稿内容时用 `note +transcript --note-id <note_id>`（[lark-meeting](../lark-meeting/SKILL.md)）拉取到本地，报告中标注"unified 纪要"即可。
 
 2. 获取纪要文档和逐字稿文档链接
 ```bash
@@ -117,6 +112,7 @@ lark-cli docs +update --doc "<url_or_token>" --command append --doc-format markd
 ## 参考
 
 - [lark-shared](../lark-shared/SKILL.md) — 认证、权限（必读）
-- [lark-vc](../lark-vc/SKILL.md) — `+search`、`+detail` 详细用法
-- [lark-note](../lark-note/SKILL.md) — `note +detail`、`note +transcript`（unified 纪要逐字稿）
+- [lark-meeting](../lark-meeting/SKILL.md) — 会议与产物统一路由
+- [查询会议与会议产物](../lark-meeting/scenes/query-meeting-and-artifacts.md) — 搜索、消歧、产物获取与逐字稿分析流程
+- [`vc +search`](../lark-meeting/references/lark-vc-search.md)、[`vc +detail`](../lark-meeting/references/lark-vc-detail.md)、[`note +detail`](../lark-meeting/references/lark-note-detail.md)、[`note +transcript`](../lark-meeting/references/lark-note-transcript.md) — 命令细节
 - [lark-doc](../lark-doc/SKILL.md) — `+fetch`、`+create`、`+update` 详细用法
