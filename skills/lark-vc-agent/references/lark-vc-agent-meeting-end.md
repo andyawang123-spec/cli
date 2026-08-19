@@ -49,6 +49,6 @@ lark-cli vc +meeting-end --as bot --meeting-id <meeting_id> --dry-run
 
 ## 参考
 
-- [lark-vc-agent-meeting-start](lark-vc-agent-meeting-start.md) — 启动并加入会议
+- [lark-vc-agent-meeting-join](lark-vc-agent-meeting-join.md) — 入会；传 `--action start` 可启动并加入日程会议
 - [lark-vc-agent-meeting-invite](lark-vc-agent-meeting-invite.md) — 会中邀请
 - [lark-vc-agent-meeting-leave](lark-vc-agent-meeting-leave.md) — 仅让机器人离会

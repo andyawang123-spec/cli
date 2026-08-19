@@ -40,7 +40,7 @@ metadata:
 | 用户意图示例                                                     | 应路由到                                                                                                                                                  |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | "帮我入会 123456789"、"代我参会"、"让机器人进会旁听"                         | **本 skill** `+meeting-join`                                                                                                                           |
-| "启动会议 123456789"、"让机器人开始这个会议"                              | **本 skill** `+meeting-start`                                                                                                                          |
+| "启动会议 123456789"、"让机器人开始这个会议"                              | **本 skill** `+meeting-join --action start`                                                                                                           |
 | "邀请这些人进会"、"邀请全部建议成员"                                      | **本 skill** `+meeting-invite`                                                                                                                         |
 | "会议现在还开着，谁刚加入了"、"会议里谁在发言"、"有人共享屏幕吗"（**进行中会议**）             | **本 skill** `+meeting-events`                                                                                                                         |
 | "我/某个用户现在在哪个会里"、"给我找当前可拉事件的 meeting_id"                         | **本 skill** `+meeting-list-active`                                                                                                                     |
@@ -58,7 +58,7 @@ metadata:
 | ---- | -------- | -------- |
 | 查询当前登录用户正在参加的会议 | `--as user` | 不传 `--user-id`；拿到的 `meeting_id` 后续继续用 `--as user` 读事件 |
 | 查询目标用户且应用机器人也在会中的会议 | `--as bot --user-id <user_open_id>` | `--user-id` 必须是 `ou_...`；拿到的 `meeting_id` 后续继续用 `--as bot` 读事件 |
-| 用户明确要求应用机器人入会/旁听/代参会 | `--as bot` | 这是写操作，会真实产生入会记录；返回的 `meeting.id` 后续继续用 `--as bot` |
+| 用户明确要求应用机器人入会/旁听/代参会，或启动日程会议 | `--as bot` | 这是写操作，会真实产生入会记录；启动会议用 `+meeting-join --action start`；返回的 `meeting.id` 后续继续用 `--as bot` |
 
 硬规则：`meeting_id` 从哪种身份路径拿到，后续 `+meeting-events` / `+meeting-message-send` 就沿用哪种身份，除非用户明确要求切换场景（例如从“仅查询我当前会”改成“让应用机器人入会旁听”）。
 
@@ -95,7 +95,7 @@ metadata:
 
 ### 2A. 启动 / 邀请 / 结束会议（写操作）
 
-1. 用户明确要求启动会议时，用 `+meeting-start --as bot --meeting-number <9位>`；这是写操作，会让应用机器人实际进入会议。参数和请求细节见 [`+meeting-start` reference](references/lark-vc-agent-meeting-start.md)。
+1. 用户明确要求启动会议时，用 `+meeting-join --as bot --meeting-number <9位> --action start`；这是写操作，会让应用机器人实际进入会议。参数和请求细节见 [`+meeting-join` reference](references/lark-vc-agent-meeting-join.md)。
 2. 用户要求邀请成员时，用 `+meeting-invite --as bot --meeting-id <meeting_id> --scope all|selected`；这是写操作，会真实邀请成员入会。`all` / `selected` 的选择、成员 ID 参数、批次语义和返回字段见 [`+meeting-invite` reference](references/lark-vc-agent-meeting-invite.md)。
 3. 用户明确要求结束整场会议时，用 `+meeting-end --as bot --meeting-id <meeting_id>`；这是影响所有参会人的写操作，不要把“机器人离开”误路由为结束会议。参数和输出字段见 [`+meeting-end` reference](references/lark-vc-agent-meeting-end.md)。
 4. 这三个写操作只走公开 OpenAPI；不要 fallback BAM、OGW 或 internal RPC。
@@ -188,8 +188,7 @@ Shortcut 是对常用操作的高级封装（`lark-cli vc +<verb> [flags]`）。
 
 | Shortcut                                                        | 类型 | 说明                                                                         |
 | --------------------------------------------------------------- | -- | -------------------------------------------------------------------------- |
-| [`+meeting-join`](references/lark-vc-agent-meeting-join.md)     | 写  | Join an in-progress meeting by 9-digit meeting number                      |
-| [`+meeting-start`](references/lark-vc-agent-meeting-start.md)   | 写  | Start and join a meeting by 9-digit meeting number                         |
+| [`+meeting-join`](references/lark-vc-agent-meeting-join.md)     | 写  | Join an in-progress meeting by 9-digit meeting number; use `--action start` to start and join a calendar meeting |
 | [`+meeting-invite`](references/lark-vc-agent-meeting-invite.md) | 写  | Invite selected or all eligible users as the app bot                       |
 | [`+meeting-end`](references/lark-vc-agent-meeting-end.md)       | 写  | End a meeting by meeting_id                                                |
 | [`+meeting-list-active`](../lark-vc/references/lark-vc-meeting-list-active.md) | 读  | List active meetings and discover meeting_id for event reads               |
@@ -197,8 +196,7 @@ Shortcut 是对常用操作的高级封装（`lark-cli vc +<verb> [flags]`）。
 | [`+meeting-message-send`](../lark-vc/references/lark-vc-meeting-message-send.md) | 写  | Send an in-meeting text message or reaction emoji                          |
 | [`+meeting-leave`](references/lark-vc-agent-meeting-leave.md)   | 写  | Leave a meeting by meeting\_id                                             |
 
-- [`+meeting-join`](references/lark-vc-agent-meeting-join.md)：入参格式、写操作可见性风险、入会失败排查。
-- [`+meeting-start`](references/lark-vc-agent-meeting-start.md)：启动会议参数、请求预览和写操作可见性。
+- [`+meeting-join`](references/lark-vc-agent-meeting-join.md)：入参格式、`--action start` 启动模式、写操作可见性风险、入会失败排查。
 - [`+meeting-invite`](references/lark-vc-agent-meeting-invite.md)：邀请范围选择、成员 ID 参数、批次语义和返回字段。
 - [`+meeting-end`](references/lark-vc-agent-meeting-end.md)：结束整场会议的写操作风险和输出字段。
 - [`+meeting-list-active`](../lark-vc/references/lark-vc-meeting-list-active.md)：用户身份和应用身份的不同返回范围。

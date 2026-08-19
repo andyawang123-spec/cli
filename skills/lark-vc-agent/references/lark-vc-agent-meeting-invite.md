@@ -104,5 +104,5 @@ JSON 输出原样保留服务端实际返回的聚合字段，不增加外部用
 
 ## 参考
 
-- [lark-vc-agent-meeting-start](lark-vc-agent-meeting-start.md) — 启动并加入会议
+- [lark-vc-agent-meeting-join](lark-vc-agent-meeting-join.md) — 入会；传 `--action start` 可启动并加入日程会议
 - [lark-vc-agent-meeting-end](lark-vc-agent-meeting-end.md) — 结束会议

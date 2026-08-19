@@ -53,13 +53,14 @@ func assertNoDryRunNetworkCalls(t *testing.T, trap *httpmock.Stub) {
 }
 
 func TestMeetingAgentActions_DryRunWireContracts(t *testing.T) {
-	t.Run("meeting start", func(t *testing.T) {
+	t.Run("meeting join start action", func(t *testing.T) {
 		f, stdout, _, reg := cmdutil.TestFactory(t, defaultConfig())
 		trap := registerDryRunNetworkTrap(reg)
 
-		err := mountAndRun(t, VCMeetingStart, []string{
-			"+meeting-start", "--as", "bot",
+		err := mountAndRun(t, VCMeetingJoin, []string{
+			"+meeting-join", "--as", "bot",
 			"--meeting-number", "123456789",
+			"--action", "start",
 			"--dry-run", "--format", "json",
 		}, f, stdout)
 		if err != nil {
@@ -67,8 +68,8 @@ func TestMeetingAgentActions_DryRunWireContracts(t *testing.T) {
 		}
 
 		call := decodeMeetingActionDryRun(t, stdout.Bytes()).Data.API[0]
-		if call.Method != "POST" || call.URL != meetingBotStartPath {
-			t.Fatalf("dry-run call = %s %s, want POST %s", call.Method, call.URL, meetingBotStartPath)
+		if call.Method != "POST" || call.URL != meetingBotJoinPath {
+			t.Fatalf("dry-run call = %s %s, want POST %s", call.Method, call.URL, meetingBotJoinPath)
 		}
 		if len(call.Params) != 0 {
 			t.Fatalf("dry-run params = %#v, want none", call.Params)
@@ -183,11 +184,11 @@ func TestMeetingAgentActions_DryRunWireContracts(t *testing.T) {
 	})
 }
 
-func TestMeetingStart_Execute_BodyActionStart(t *testing.T) {
+func TestMeetingJoin_Execute_StartActionBody(t *testing.T) {
 	f, stdout, _, reg := cmdutil.TestFactory(t, defaultConfig())
 	stub := &httpmock.Stub{
 		Method: "POST",
-		URL:    meetingBotStartPath,
+		URL:    meetingBotJoinPath,
 		Body: map[string]interface{}{
 			"code": 0, "msg": "ok",
 			"data": map[string]interface{}{
@@ -200,8 +201,8 @@ func TestMeetingStart_Execute_BodyActionStart(t *testing.T) {
 	}
 	reg.Register(stub)
 
-	err := mountAndRun(t, VCMeetingStart, []string{
-		"+meeting-start", "--as", "bot", "--meeting-number", "123456789", "--format", "json",
+	err := mountAndRun(t, VCMeetingJoin, []string{
+		"+meeting-join", "--as", "bot", "--meeting-number", "123456789", "--action", "start", "--format", "json",
 	}, f, stdout)
 	if err != nil {
 		t.Fatalf("mountAndRun() error = %v", err)

@@ -23,8 +23,9 @@ func TestVCMeetingAgentActionsDryRun(t *testing.T) {
 		{
 			name: "meeting start",
 			args: []string{
-				"vc", "+meeting-start",
+				"vc", "+meeting-join",
 				"--meeting-number", "123456789",
+				"--action", "start",
 				"--dry-run",
 			},
 			assert: func(t *testing.T, out string) {

@@ -83,14 +83,26 @@ func TestVCBotShortcutsIdentityDocsMatchAuthTypes(t *testing.T) {
 func TestVCAgentActionDocsMatchShortcuts(t *testing.T) {
 	skill := readSkillDoc(t, "skills/lark-vc-agent/SKILL.md")
 	references := map[string]string{
-		"+meeting-start":  "skills/lark-vc-agent/references/lark-vc-agent-meeting-start.md",
+		"+meeting-join":   "skills/lark-vc-agent/references/lark-vc-agent-meeting-join.md",
 		"+meeting-invite": "skills/lark-vc-agent/references/lark-vc-agent-meeting-invite.md",
 		"+meeting-end":    "skills/lark-vc-agent/references/lark-vc-agent-meeting-end.md",
 	}
 	shortcuts := map[string]commonShortcutDocContract{
-		"+meeting-start":  {authTypes: VCMeetingStart.AuthTypes, reference: references["+meeting-start"]},
 		"+meeting-invite": {authTypes: VCMeetingInvite.AuthTypes, reference: references["+meeting-invite"]},
 		"+meeting-end":    {authTypes: VCMeetingEnd.AuthTypes, reference: references["+meeting-end"]},
+	}
+
+	if !hasAuthType(VCMeetingJoin.AuthTypes, "bot") || !hasAuthType(VCMeetingJoin.AuthTypes, "user") {
+		t.Fatalf("+meeting-join AuthTypes = %v, want user and bot", VCMeetingJoin.AuthTypes)
+	}
+	if !strings.Contains(skill, "`+meeting-join`") {
+		t.Fatalf("skills/lark-vc-agent/SKILL.md must mention +meeting-join")
+	}
+	joinRef := readSkillDoc(t, references["+meeting-join"])
+	for _, want := range []string{"lark-cli vc +meeting-join --as bot", "--action start", "action: 2", "启动"} {
+		if !strings.Contains(joinRef, want) {
+			t.Fatalf("meeting join reference missing start-mode detail %q", want)
+		}
 	}
 
 	for name, contract := range shortcuts {

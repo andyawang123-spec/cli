@@ -280,6 +280,9 @@ func TestMeetingJoin_Execute_Success(t *testing.T) {
 	if req["join_type"].(float64) != 1 {
 		t.Errorf("join_type = %v, want 1", req["join_type"])
 	}
+	if _, exists := req["action"]; exists {
+		t.Errorf("default join must not include action, got %v", req["action"])
+	}
 	ji, _ := req["join_identify"].(map[string]interface{})
 	if ji["meeting_no"] != "123456789" {
 		t.Errorf("meeting_no = %v, want 123456789", ji["meeting_no"])
@@ -389,6 +392,23 @@ func TestMeetingJoin_Execute_PrettyOutput_NoMeetingInfo(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "no meeting info returned") {
 		t.Errorf("pretty output should fall back to 'no meeting info' notice, got: %s", stdout.String())
+	}
+}
+
+func TestMeetingJoin_StartActionRequiresBot(t *testing.T) {
+	f, _, _, _ := cmdutil.TestFactory(t, defaultConfig())
+	err := mountAndRun(t, VCMeetingJoin, []string{
+		"+meeting-join", "--meeting-number", "123456789", "--action", "start", "--as", "user",
+	}, f, nil)
+	if err == nil {
+		t.Fatal("expected validation error for --action start with user identity")
+	}
+	var valErr *errs.ValidationError
+	if !errors.As(err, &valErr) {
+		t.Fatalf("error = %T %v, want *errs.ValidationError", err, err)
+	}
+	if valErr.Param != "--action" {
+		t.Fatalf("Param = %q, want --action", valErr.Param)
 	}
 }
 

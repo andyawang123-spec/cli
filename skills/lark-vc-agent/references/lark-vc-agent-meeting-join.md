@@ -13,6 +13,9 @@
 # 仅指定会议号（无密码）
 lark-cli vc +meeting-join --as bot --meeting-number 123456789
 
+# 启动日程会议并加入（仅应用身份）
+lark-cli vc +meeting-join --as bot --meeting-number 123456789 --action start
+
 # 指定会议号 + 密码
 lark-cli vc +meeting-join --as bot --meeting-number 123456789 --password 8888
 
@@ -33,6 +36,7 @@ lark-cli vc +meeting-join --as bot --meeting-number 123456789 --dry-run
 | `--meeting-number <no>` | 是 | 会议号，必须为 **9 位纯数字** |
 | `--password <pw>` | 否 | 会议密码，仅在该会议设置了入会密码时传入 |
 | `--call-id <id>` | 否 | 从 `vc.bot.meeting_invited_v1` 邀请事件透传的 `call_id`，原样回传即可。Agent 主动入会或无邀请事件来源时不传 |
+| `--action join\|start` | 否 | 默认 `join`，保持普通入会链路；`start` 用同一 `bots/join` API 发起日程会议并加入，请求体包含 `action: 2`，且必须 `--as bot` |
 | `--dry-run` | 否 | 预览 API 调用，不实际加入会议；会议号或身份不确定时先用它确认请求 |
 
 ## 核心约束
@@ -40,6 +44,8 @@ lark-cli vc +meeting-join --as bot --meeting-number 123456789 --dry-run
 ### 1. 使用应用身份
 
 这是应用机器人入会能力，使用 `--as bot`。不要用当前登录用户身份尝试让应用机器人入会。
+
+`--action start` 是发起日程会议的新链路，也必须使用 `--as bot`。不传 `--action` 或传 `--action join` 时保持普通入会老链路，CLI 不会向请求体写入 `action` 字段。
 
 ### 2. 会议号格式严格校验
 
@@ -88,6 +94,16 @@ lark-cli vc +meeting-join --as bot --meeting-number 123456789 --dry-run
 ```bash
 # 第 1 步：加入会议，记录返回的 meeting.id
 lark-cli vc +meeting-join --as bot --meeting-number 123456789
+
+# 第 2 步：使用返回的 meeting.id 查询会中事件
+lark-cli vc +meeting-events --as bot --meeting-id <meeting.id> --page-all --format pretty
+```
+
+### 场景 1A：启动日程会议 → 监听会中事件
+
+```bash
+# 第 1 步：启动会议并加入，记录返回的 meeting.id
+lark-cli vc +meeting-join --as bot --meeting-number 123456789 --action start
 
 # 第 2 步：使用返回的 meeting.id 查询会中事件
 lark-cli vc +meeting-events --as bot --meeting-id <meeting.id> --page-all --format pretty

@@ -15,9 +15,7 @@ import (
 )
 
 const (
-	meetingBotStartPath  = "/open-apis/vc/v1/bots/join"
 	meetingBotInvitePath = "/open-apis/vc/v1/bots/invite"
-	meetingBotEndPath    = "/open-apis/vc/v1/bots/end"
 
 	meetingInviteScopeAll      = "all"
 	meetingInviteScopeSelected = "selected"
@@ -30,48 +28,6 @@ var validInviteeIDTypes = map[string]struct{}{
 	"open_id":  {},
 	"union_id": {},
 	"user_id":  {},
-}
-
-// VCMeetingStart starts a Calendar meeting and joins it as the app bot.
-var VCMeetingStart = common.Shortcut{
-	Service:     "vc",
-	Command:     "+meeting-start",
-	Description: "Start and join a meeting by meeting number as the app bot",
-	Risk:        "write",
-	Scopes:      []string{"vc:meeting.bot.join:write"},
-	AuthTypes:   []string{"bot"},
-	HasFormat:   true,
-	Flags: []common.Flag{
-		{Name: "meeting-number", Required: true, Desc: "9-digit meeting number to start"},
-	},
-	Validate: func(ctx context.Context, runtime *common.RuntimeContext) error {
-		return validateMeetingStart(runtime)
-	},
-	DryRun: func(ctx context.Context, runtime *common.RuntimeContext) *common.DryRunAPI {
-		body, err := buildMeetingStartBody(runtime)
-		if err != nil {
-			return common.NewDryRunAPI().Set("error", err.Error())
-		}
-		return common.NewDryRunAPI().POST(meetingBotStartPath).Body(body)
-	},
-	Execute: func(ctx context.Context, runtime *common.RuntimeContext) error {
-		body, err := buildMeetingStartBody(runtime)
-		if err != nil {
-			return err
-		}
-		data, err := runtime.CallAPITyped(http.MethodPost, meetingBotStartPath, nil, body)
-		if err != nil {
-			return err
-		}
-		if data == nil {
-			data = map[string]interface{}{}
-		}
-		runtime.OutFormat(data, nil, func(w io.Writer) {
-			fmt.Fprintln(w, "Started and joined meeting.")
-			printMeetingSummary(w, data)
-		})
-		return nil
-	},
 }
 
 // VCMeetingInvite invites selected users or all eligible users as the app bot.
@@ -120,71 +76,6 @@ var VCMeetingInvite = common.Shortcut{
 		})
 		return nil
 	},
-}
-
-// VCMeetingEnd ends a meeting as the app bot.
-var VCMeetingEnd = common.Shortcut{
-	Service:     "vc",
-	Command:     "+meeting-end",
-	Description: "End a meeting as the app bot",
-	Risk:        "write",
-	Scopes:      []string{"vc:meeting.bot.manage:write"},
-	AuthTypes:   []string{"bot"},
-	HasFormat:   true,
-	Flags: []common.Flag{
-		{Name: "meeting-id", Required: true, Desc: "meeting ID to end"},
-	},
-	Validate: func(ctx context.Context, runtime *common.RuntimeContext) error {
-		return validateMeetingEventsMeetingID(runtime.Str("meeting-id"))
-	},
-	DryRun: func(ctx context.Context, runtime *common.RuntimeContext) *common.DryRunAPI {
-		body, err := buildMeetingEndBody(runtime)
-		if err != nil {
-			return common.NewDryRunAPI().Set("error", err.Error())
-		}
-		return common.NewDryRunAPI().POST(meetingBotEndPath).Body(body)
-	},
-	Execute: func(ctx context.Context, runtime *common.RuntimeContext) error {
-		body, err := buildMeetingEndBody(runtime)
-		if err != nil {
-			return err
-		}
-		data, err := runtime.CallAPITyped(http.MethodPost, meetingBotEndPath, nil, body)
-		if err != nil {
-			return err
-		}
-		if data == nil {
-			data = map[string]interface{}{}
-		}
-		meetingID := strings.TrimSpace(runtime.Str("meeting-id"))
-		data["meeting_id"] = meetingID
-		runtime.OutFormat(data, nil, func(w io.Writer) {
-			fmt.Fprintf(w, "Ended meeting %s.\n", meetingID)
-		})
-		return nil
-	},
-}
-
-func validateMeetingStart(runtime *common.RuntimeContext) error {
-	mn := strings.TrimSpace(runtime.Str("meeting-number"))
-	if !validMeetingNumber(mn) {
-		return errs.NewValidationError(errs.SubtypeInvalidArgument, "--meeting-number must be exactly 9 digits, got %q", mn).
-			WithParam("--meeting-number")
-	}
-	return nil
-}
-
-func buildMeetingStartBody(runtime *common.RuntimeContext) (map[string]interface{}, error) {
-	if err := validateMeetingStart(runtime); err != nil {
-		return nil, err
-	}
-	return map[string]interface{}{
-		"join_type": 1,
-		"join_identify": map[string]interface{}{
-			"meeting_no": strings.TrimSpace(runtime.Str("meeting-number")),
-		},
-		"action": 2,
-	}, nil
 }
 
 func buildMeetingInviteRequest(runtime *common.RuntimeContext) (map[string]interface{}, map[string]interface{}, error) {
@@ -259,15 +150,6 @@ func buildInvitees(ids []string) []map[string]interface{} {
 	return invitees
 }
 
-func buildMeetingEndBody(runtime *common.RuntimeContext) (map[string]interface{}, error) {
-	if err := validateMeetingEventsMeetingID(runtime.Str("meeting-id")); err != nil {
-		return nil, err
-	}
-	return map[string]interface{}{
-		"meeting_id": strings.TrimSpace(runtime.Str("meeting-id")),
-	}, nil
-}
-
 func printMeetingInviteSummary(w io.Writer, data map[string]interface{}) {
 	fmt.Fprintln(w, "Invite request sent.")
 	if count, ok := common.GetFloatOK(data, "invited_count"); ok {
@@ -278,21 +160,5 @@ func printMeetingInviteSummary(w io.Writer, data map[string]interface{}) {
 	}
 	if common.GetBool(data, "has_more") {
 		fmt.Fprintln(w, "More eligible candidates remain. Run again with --scope all.")
-	}
-}
-
-func printMeetingSummary(w io.Writer, data map[string]interface{}) {
-	meeting, _ := data["meeting"].(map[string]interface{})
-	if meeting == nil {
-		return
-	}
-	if id := common.GetString(meeting, "id"); id != "" {
-		fmt.Fprintf(w, "  Meeting ID:  %s\n", id)
-	}
-	if no := common.GetString(meeting, "meeting_no"); no != "" {
-		fmt.Fprintf(w, "  Meeting No:  %s\n", no)
-	}
-	if topic := common.GetString(meeting, "topic"); topic != "" {
-		fmt.Fprintf(w, "  Topic:       %s\n", topic)
 	}
 }
