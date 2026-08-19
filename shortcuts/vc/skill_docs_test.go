@@ -133,11 +133,26 @@ func TestVCAgentActionDocsMatchShortcuts(t *testing.T) {
 		}
 	}
 
-	for _, want := range []string{"invited_count", "failed_count", "has_more", "不会自动续邀", "Host 或 Co-host"} {
-		if !strings.Contains(skill, want) {
-			t.Fatalf("skills/lark-vc-agent/SKILL.md meeting invite guidance missing %q", want)
+	agentActionsSection := sectionBetween(t, skill, "### 2A. 启动 / 邀请 / 结束会议（写操作）", "#### 文档上下文事件")
+	for _, detailed := range []string{"invited_count", "failed_count", "has_more", "不会自动续邀", "Host 或 Co-host", "\"invite_type\": 2", "user_id_type=open_id"} {
+		if strings.Contains(agentActionsSection, detailed) {
+			t.Fatalf("skills/lark-vc-agent/SKILL.md should keep detailed invite protocol %q in the reference doc", detailed)
 		}
 	}
+}
+
+func sectionBetween(t *testing.T, content, start, end string) string {
+	t.Helper()
+	startIndex := strings.Index(content, start)
+	if startIndex < 0 {
+		t.Fatalf("document missing section %q", start)
+	}
+	rest := content[startIndex:]
+	endIndex := strings.Index(rest, end)
+	if endIndex < 0 {
+		t.Fatalf("document section %q missing end marker %q", start, end)
+	}
+	return rest[:endIndex]
 }
 
 type commonShortcutDocContract struct {

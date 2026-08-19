@@ -156,8 +156,10 @@ var VCMeetingEnd = common.Shortcut{
 		if data == nil {
 			data = map[string]interface{}{}
 		}
+		meetingID := strings.TrimSpace(runtime.Str("meeting-id"))
+		data["meeting_id"] = meetingID
 		runtime.OutFormat(data, nil, func(w io.Writer) {
-			fmt.Fprintf(w, "Ended meeting %s.\n", strings.TrimSpace(runtime.Str("meeting-id")))
+			fmt.Fprintf(w, "Ended meeting %s.\n", meetingID)
 		})
 		return nil
 	},

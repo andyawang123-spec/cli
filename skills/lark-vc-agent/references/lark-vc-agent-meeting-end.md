@@ -29,6 +29,10 @@ lark-cli vc +meeting-end --as bot --meeting-id <meeting_id> --dry-run
 
 仅使用公开 OpenAPI `POST /open-apis/vc/v1/bots/end`。不 fallback BAM、OGW 或 internal RPC。
 
+## 返回
+
+`--format json` 的 `data.meeting_id` 会回显本次传入的长数字会议 ID，便于后续日志和自动化步骤关联已结束的会议。
+
 ## 核心约束
 
 - 使用应用身份 `--as bot`。

@@ -95,12 +95,10 @@ metadata:
 
 ### 2A. 启动 / 邀请 / 结束会议（写操作）
 
-1. 用户明确要求启动会议时，用 `+meeting-start --as bot --meeting-number <9位>`；请求体固定为 `join_type=1`、`join_identify.meeting_no=<会议号>`、`action=2`。
-2. 用户要求邀请成员时，用 `+meeting-invite --as bot --meeting-id <meeting_id> --scope all|selected`。`selected` 必须同时传 `--invitee-id-type open_id|union_id|user_id` 和 `--invitee-ids <ids>`，去重后最多 200 人；去重后 1 人走单点邀请，2～200 人要求当前应用机器人是 Host 或 Co-host。`all` 同样要求当前应用机器人是 Host 或 Co-host，每次实时重新计算并过滤已经在会中、正在响铃或正在呼叫的用户，单批最多邀请 200 人。
-3. Invite JSON 原样保留服务端实际返回的聚合字段；`failed_count` 表示本批失败数。服务端返回 `invited_count` / `has_more` 时，pretty 才展示本批成功数和续邀提示。`has_more=true` 只表示仍有符合条件的候选，可由用户再次调用 `--scope all`；它不是 page token，CLI 不会自动续邀，也不能据此声称已经邀请全部候选。
-4. Invite wire 合同保持不变：`selected` 只发送 `invite_type=2`、`invitees=[{id,user_type:1}]` 和 query `user_id_type=<type>`，不要发送 `scope=selected`；`all` 只发送 `invite_type=1`，不带 `invitees`。响应不增加外部用户明细。
-5. 用户明确要求结束整场会议时，用 `+meeting-end --as bot --meeting-id <meeting_id>`；这是影响所有参会人的写操作，不要把“机器人离开”误路由为结束会议。
-6. 这三个写操作只走公开 OpenAPI；不要 fallback BAM、OGW 或 internal RPC。
+1. 用户明确要求启动会议时，用 `+meeting-start --as bot --meeting-number <9位>`；这是写操作，会让应用机器人实际进入会议。参数和请求细节见 [`+meeting-start` reference](references/lark-vc-agent-meeting-start.md)。
+2. 用户要求邀请成员时，用 `+meeting-invite --as bot --meeting-id <meeting_id> --scope all|selected`；这是写操作，会真实邀请成员入会。`all` / `selected` 的选择、成员 ID 参数、批次语义和返回字段见 [`+meeting-invite` reference](references/lark-vc-agent-meeting-invite.md)。
+3. 用户明确要求结束整场会议时，用 `+meeting-end --as bot --meeting-id <meeting_id>`；这是影响所有参会人的写操作，不要把“机器人离开”误路由为结束会议。参数和输出字段见 [`+meeting-end` reference](references/lark-vc-agent-meeting-end.md)。
+4. 这三个写操作只走公开 OpenAPI；不要 fallback BAM、OGW 或 internal RPC。
 
 #### 文档上下文事件
 
@@ -200,9 +198,9 @@ Shortcut 是对常用操作的高级封装（`lark-cli vc +<verb> [flags]`）。
 | [`+meeting-leave`](references/lark-vc-agent-meeting-leave.md)   | 写  | Leave a meeting by meeting\_id                                             |
 
 - [`+meeting-join`](references/lark-vc-agent-meeting-join.md)：入参格式、写操作可见性风险、入会失败排查。
-- [`+meeting-start`](references/lark-vc-agent-meeting-start.md)：启动会议的 `action=2` wire 合同。
-- [`+meeting-invite`](references/lark-vc-agent-meeting-invite.md)：`--scope all|selected` 与 `invite_type` / `invitees` 映射。
-- [`+meeting-end`](references/lark-vc-agent-meeting-end.md)：结束整场会议的写操作风险。
+- [`+meeting-start`](references/lark-vc-agent-meeting-start.md)：启动会议参数、请求预览和写操作可见性。
+- [`+meeting-invite`](references/lark-vc-agent-meeting-invite.md)：邀请范围选择、成员 ID 参数、批次语义和返回字段。
+- [`+meeting-end`](references/lark-vc-agent-meeting-end.md)：结束整场会议的写操作风险和输出字段。
 - [`+meeting-list-active`](../lark-vc/references/lark-vc-meeting-list-active.md)：用户身份和应用身份的不同返回范围。
 - [`+meeting-events`](../lark-vc/references/lark-vc-meeting-events.md)：`meeting_id` 来源、身份延续、分页和错误码（10005 / 20001 / 20002）。
 - [`+meeting-message-send`](../lark-vc/references/lark-vc-meeting-message-send.md)：会中文本、完整 `emoji_type` 列表、身份延续和写操作风险。

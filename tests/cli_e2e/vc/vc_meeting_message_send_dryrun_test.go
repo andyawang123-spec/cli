@@ -110,4 +110,6 @@ func setVCDryRunEnv(t *testing.T) {
 	t.Setenv("LARKSUITE_CLI_APP_ID", "vc_dryrun_test")
 	t.Setenv("LARKSUITE_CLI_APP_SECRET", "vc_dryrun_secret")
 	t.Setenv("LARKSUITE_CLI_BRAND", "feishu")
+	t.Setenv("LARKSUITE_CLI_NO_UPDATE_NOTIFIER", "1")
+	t.Setenv("LARKSUITE_CLI_NO_SKILLS_NOTIFIER", "1")
 }
